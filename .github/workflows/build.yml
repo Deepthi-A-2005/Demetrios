@@ -15,20 +15,23 @@ jobs:
         with:
           node-version: 20
 
-      - name: Setup Expo
-        uses: expo/expo-github-action@v8
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          eas-version: 18.9.1
-          token: ${{ secrets.EXPO_TOKEN }}
+          distribution: temurin
+          java-version: 17
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps --force
 
+      - name: Prebuild Android
+        run: npx expo prebuild --platform android --no-install
+
       - name: Build APK
-        run: eas build --platform android --profile preview --non-interactive --local --output ./demetrios.apk
+        run: cd android && ./gradlew assembleRelease
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: demetrios-apk
-          path: ./demetrios.apk
+          path: android/app/build/outputs/apk/release/app-release.apk
