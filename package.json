@@ -22,10 +22,10 @@
     "react": "19.2.5",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.16.1",
-    "react-native-reanimated": "~3.17.0",
+    "react-native-reanimated": "~3.10.1",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screen-transitions": "^3.2.1",
-    "react-native-screens": "~4.4.0",
+    "react-native-screens": "~3.31.1",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
