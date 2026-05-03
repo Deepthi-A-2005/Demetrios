@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "Demetrios",
+    "slug": "demetrios",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -24,41 +25,7 @@
       "package": "xyz.create.CreateExpoEnvironment"
     },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "sitemap": false
-        }
-      ],
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#ffffff",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "android": {
-            "imageContentFit": "contain"
-          },
-          "ios": {
-            "imageContentFit": "contain"
-          }
-        }
-      ],
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "useFrameworks": "static"
-          }
-        }
-      ],
-      [
-        "expo-video",
-        {
-          "supportsBackgroundPlayback": true,
-          "supportsPictureInPicture": true
-        }
-      ]
+      ["expo-router", { "sitemap": false }]
     ],
     "web": {
       "bundler": "metro",
@@ -70,8 +37,10 @@
     "extra": {
       "router": {
         "origin": false
+      },
+      "eas": {
+        "projectId": "4f6821ca-132f-411d-aa86-a51dc6bc45d4"
       }
-    },
-    "slug": "demetrios"
+    }
   }
 }
