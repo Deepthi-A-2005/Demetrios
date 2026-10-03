@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Demetrios</string>
+    <string name="title_activity_main">Demetrios</string>
+    <string name="package_name">com.demetrios.fieldrover</string>
+    <string name="custom_url_scheme">com.demetrios.fieldrover</string>
+</resources>

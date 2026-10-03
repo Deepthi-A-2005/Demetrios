@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEMETRIOS — Field Rover App</title>
+<style>
+  :root{
+    --purple:#6C5CE7;
+    --purple-dark:#4B3FD1;
+    --blue:#4FA8FF;
+    --green:#00C48C;
+    --orange:#FF9F43;
+    --pink:#FF6B9D;
+    --red:#FF5A5F;
+    --bg:#F6F4FF;
+    --card:#FFFFFF;
+    --ink:#2B2648;
+    --ink-soft:#8B87A6;
+    --line:#EDEBFA;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    background:linear-gradient(160deg,#EFE9FF 0%, #F6F4FF 40%, #EAF3FF 100%);
+    color:var(--ink);
+    font-family:"Poppins","Segoe UI",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .page{ max-width:900px; margin:0 auto; padding:40px 20px 60px; display:flex; flex-direction:column; align-items:center; }
+
+  .masthead{ text-align:center; margin-bottom:32px; }
+  .eyebrow{
+    font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--purple); font-weight:700;
+  }
+  .masthead h1{ font-size:26px; font-weight:800; margin-top:8px; color:var(--ink); }
+  .masthead p{ font-size:13px; color:var(--ink-soft); max-width:420px; line-height:1.6; margin:8px auto 0; }
+
+  .device{
+    width:300px; height:648px; border-radius:38px; background:var(--card);
+    box-shadow:0 20px 45px -12px rgba(76,60,180,.28), 0 0 0 8px #fff, 0 0 0 9px #E4DEFB;
+    display:flex; flex-direction:column; overflow:hidden; position:relative;
+  }
+
+  .statusbar{
+    height:38px; flex:0 0 38px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 20px; font-size:12px; font-weight:700; color:var(--ink);
+  }
+  .sig{ display:flex; align-items:flex-end; gap:2px; height:9px; }
+  .sig span{ width:3px; border-radius:1px; background:var(--ink); display:block; }
+  .sig span:nth-child(1){height:3px;} .sig span:nth-child(2){height:5px;}
+  .sig span:nth-child(3){height:7px;} .sig span:nth-child(4){height:9px;}
+  .sig.weak span{ background:var(--ink-soft); }
+  .batt{ width:20px; height:10px; border:1.4px solid var(--ink); border-radius:3px; position:relative; padding:1.5px; }
+  .batt::after{ content:""; position:absolute; right:-3px; top:3px; width:2px; height:4px; background:var(--ink); border-radius:1px;}
+  .batt i{ display:block; height:100%; background:var(--ink); width:80%; border-radius:1px; transition:width .4s ease; }
+  .sb-icons{ display:flex; align-items:center; gap:6px; }
+
+  .content{ flex:1; overflow-y:auto; padding:18px 20px; }
+  .content::-webkit-scrollbar{ display:none; }
+
+  /* buttons */
+  .btn-primary{
+    width:100%; background:linear-gradient(135deg,var(--purple),var(--purple-dark));
+    color:#fff; border:none; padding:15px; border-radius:16px; font-size:13px; font-weight:700;
+    text-align:center; box-shadow:0 10px 20px -6px rgba(108,92,231,.55);
+    display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;
+  }
+  .btn-primary:active{ transform:scale(.98); }
+  .btn-outline{
+    background:#fff; color:var(--purple-dark); border:1.6px solid #E4DEFB;
+    padding:9px 14px; font-size:11.5px; font-weight:700; border-radius:12px;
+    cursor:pointer; text-align:center;
+  }
+  .btn-outline:active{ transform:scale(.97); }
+  .btn-outline.busy{ opacity:.6; pointer-events:none; }
+  .btn-outline.done{ color:var(--green); border-color:#CFF3E6; }
+
+  .card{ background:var(--card); border-radius:20px; padding:16px; box-shadow:0 6px 18px -8px rgba(60,50,120,.14); }
+
+  /* onboarding */
+  .onb{ flex:1; display:flex; flex-direction:column; position:relative; overflow:hidden; }
+  .onb-hero{
+    flex:0 0 62%; position:relative; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 30% 20%, #E7E1FF 0%, #C9BEFF 45%, #A594FF 100%);
+    overflow:hidden;
+  }
+  .cloud{ position:absolute; background:rgba(255,255,255,.55); border-radius:50%; }
+  .skip{ position:absolute; top:16px; right:18px; font-size:11px; font-weight:700; color:#fff; opacity:.85; z-index:2; cursor:pointer; }
+  .onb-body{ padding:22px 22px 26px; text-align:center; }
+  .onb-body h2{ font-size:19px; font-weight:800; }
+  .onb-body p{ font-size:12.5px; color:var(--ink-soft); margin-top:8px; line-height:1.5; }
+  .dots{ display:flex; gap:6px; justify-content:center; margin:16px 0; }
+  .dots span{ width:16px; height:5px; border-radius:3px; background:var(--line); }
+  .dots span.on{ background:var(--purple); width:22px; }
+
+  /* mascot Demi */
+  .mascot{ animation:bob 2.6s ease-in-out infinite; }
+  @keyframes bob{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-10px);} }
+  .antenna-dot{ animation:blink 1.4s ease-in-out infinite; }
+  @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:.3;} }
+
+  /* dashboard */
+  .greet{ display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .avatar{
+    width:44px; height:44px; border-radius:14px; flex:0 0 44px;
+    background:linear-gradient(135deg,var(--orange),var(--pink));
+    display:flex; align-items:center; justify-content:center;
+  }
+  .greet .hi{ font-size:12px; color:var(--ink-soft); font-weight:600; }
+  .greet .name{ font-size:15px; font-weight:800; }
+  .bell{
+    margin-left:auto; width:36px; height:36px; border-radius:12px; background:#fff;
+    box-shadow:0 4px 12px -4px rgba(60,50,120,.2); display:flex; align-items:center; justify-content:center;
+    position:relative;
+  }
+  .bell .ping{ position:absolute; top:6px; right:7px; width:7px; height:7px; border-radius:50%; background:var(--red); }
+
+  .goal-card{
+    background:linear-gradient(135deg,var(--purple),#8C7BFF); border-radius:20px; padding:18px; color:#fff;
+    margin-bottom:18px; box-shadow:0 12px 24px -10px rgba(108,92,231,.55);
+  }
+  .goal-card .top{ display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700; opacity:.9; }
+  .goal-card .big{ font-size:16px; font-weight:800; margin-top:6px; }
+  .bar-track{ height:8px; background:rgba(255,255,255,.3); border-radius:5px; margin-top:12px; overflow:hidden; }
+  .bar-fill{ height:100%; background:#fff; border-radius:5px; transition:width .6s ease; }
+
+  .sec-title{ display:flex; justify-content:space-between; align-items:center; margin:6px 0 12px; }
+  .sec-title h3{ font-size:13.5px; font-weight:800; }
+  .sec-title span{ font-size:11px; color:var(--purple); font-weight:700; }
+
+  .tilegrid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:18px; }
+  .stile{
+    border-radius:16px; padding:14px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px;
+    box-shadow:0 6px 14px -6px rgba(60,50,120,.18);
+  }
+  .stile .ic{ width:34px; height:34px; border-radius:11px; display:flex; align-items:center; justify-content:center; }
+  .stile span{ font-size:10.5px; font-weight:700; }
+  .stile b{ font-size:12px; }
+
+  .progress-card{ display:flex; align-items:center; gap:12px; padding:12px; border-radius:16px; margin-bottom:10px; box-shadow:0 6px 14px -6px rgba(60,50,120,.15); }
+  .progress-card .thumb{ width:44px; height:44px; border-radius:12px; flex:0 0 44px; }
+  .progress-card .info{ flex:1; }
+  .progress-card .info .t{ font-size:12.5px; font-weight:800; }
+  .progress-card .info .s{ font-size:10.5px; color:var(--ink-soft); font-weight:600; margin-bottom:6px; }
+  .mini-bar{ height:6px; background:var(--line); border-radius:4px; overflow:hidden; }
+  .mini-bar i{ display:block; height:100%; border-radius:4px; transition:width .5s ease; }
+
+  /* tab bar */
+  .tabbar{ flex:0 0 68px; display:flex; align-items:center; padding:0 10px; border-top:1px solid var(--line); }
+  .tabbar .item{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+    font-size:9.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; background:none; border:none;
+    font-family:inherit;
+  }
+  .tabbar .item.active{ color:var(--purple); }
+  .tabbar .item .ic{ width:32px; height:32px; border-radius:11px; display:flex; align-items:center; justify-content:center; }
+  .tabbar .item.active .ic{ background:linear-gradient(135deg,var(--purple),#8C7BFF); }
+  .icon svg{ width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.8; }
+  .tabbar .item.active .icon svg{ stroke:#fff; }
+
+  /* connect / radar */
+  .radar-wrap{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
+  .radar{ position:relative; width:180px; height:180px; display:flex; align-items:center; justify-content:center; margin-bottom:20px; }
+  .ring{ position:absolute; border:2px solid var(--purple); border-radius:50%; opacity:0; animation:radar 2.4s ease-out infinite; }
+  .ring:nth-child(2){ animation-delay:.8s; } .ring:nth-child(3){ animation-delay:1.6s; }
+  @keyframes radar{ 0%{ width:20px; height:20px; opacity:.7;} 100%{ width:180px; height:180px; opacity:0;} }
+  .radar.paused .ring{ animation-play-state:paused; opacity:0; }
+  .radar-core{ width:76px; height:76px; border-radius:50%; background:linear-gradient(135deg,var(--purple),#8C7BFF); display:flex; align-items:center; justify-content:center; box-shadow:0 10px 24px -6px rgba(108,92,231,.6); z-index:2; }
+
+  .device-row{ display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px; border-radius:14px; background:#fff; box-shadow:0 4px 12px -6px rgba(60,50,120,.18); margin-bottom:10px; }
+  .device-row .dot2{ width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+  .device-row .t{ font-size:12px; font-weight:800; }
+  .device-row .s{ font-size:10px; color:var(--ink-soft); font-weight:600; }
+
+  /* rover control */
+  .pad2{ display:grid; grid-template-columns:60px 60px 60px; grid-template-rows:60px 60px 60px; gap:8px; justify-content:center; margin:16px 0 20px; }
+  .padbtn2{
+    border-radius:16px; display:flex; align-items:center; justify-content:center; background:#fff;
+    box-shadow:0 6px 14px -6px rgba(60,50,120,.2); border:none; cursor:pointer;
+  }
+  .padbtn2:active{ transform:scale(.94); }
+  .padbtn2.stop{ background:linear-gradient(135deg,var(--red),#FF8A80); color:#fff; font-size:10px; font-weight:800; }
+  .padbtn2 svg{ width:20px; height:20px; stroke:var(--purple); fill:none; stroke-width:2.2; }
+  .padbtn2:disabled{ opacity:.4; pointer-events:none; }
+
+  .slider-row2{ margin-bottom:16px; }
+  .slider-row2 .top{ display:flex; justify-content:space-between; font-size:11.5px; font-weight:700; margin-bottom:8px; color:var(--ink-soft); }
+  .slider-row2 .top b{ color:var(--ink); }
+  input[type=range]{
+    -webkit-appearance:none; width:100%; height:8px; border-radius:5px;
+    background:linear-gradient(90deg,var(--purple),#8C7BFF); outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:#fff;
+    border:3px solid var(--purple); cursor:pointer; box-shadow:0 3px 8px rgba(0,0,0,.25);
+  }
+
+  .batt-strip{ display:flex; align-items:center; gap:10px; background:#fff; border-radius:14px; padding:10px 14px; box-shadow:0 4px 12px -6px rgba(60,50,120,.18); margin-bottom:16px; }
+  .batt-strip .mini-bar{ flex:1; height:8px; }
+
+  /* camera */
+  .viewfinder2{
+    border-radius:22px; height:230px; position:relative; overflow:hidden; margin-bottom:16px;
+    background:linear-gradient(160deg,#DDE9FF,#EFE9FF);
+  }
+  .viewfinder2 img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:transform .3s ease; }
+  .viewfinder2.flipped img{ transform:scaleX(-1); }
+  .viewfinder2 .placeholder{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:var(--ink-soft); font-size:11px; font-weight:700; text-align:center; padding:0 24px; }
+  .live-tag2{ position:absolute; top:12px; left:12px; background:var(--red); color:#fff; font-size:9.5px; font-weight:800; padding:5px 10px; border-radius:20px; display:flex; align-items:center; gap:6px; z-index:2; }
+  .live-tag2.off{ background:var(--ink-soft); }
+  .live-tag2 .d{ width:6px; height:6px; border-radius:50%; background:#fff; animation:blink 1.2s ease-in-out infinite; }
+  .cam-ip-row{ display:flex; gap:8px; margin-bottom:12px; }
+  .cam-ip-row input[type=text]{
+    flex:1; border:1.6px solid #E4DEFB; border-radius:12px; padding:9px 12px; font-size:11.5px;
+    font-family:inherit; color:var(--ink); font-weight:600; background:#fff; outline:none;
+  }
+  .cam-ip-row input[type=text]:focus{ border-color:var(--purple); }
+
+  /* insights */
+  .segmented2{ display:flex; background:#fff; border-radius:14px; padding:4px; box-shadow:0 4px 12px -6px rgba(60,50,120,.15); margin-bottom:18px; }
+  .segmented2 .seg{ flex:1; text-align:center; padding:8px 0; font-size:10.5px; font-weight:700; color:var(--ink-soft); border-radius:10px; cursor:pointer; }
+  .segmented2 .seg.active{ background:linear-gradient(135deg,var(--purple),#8C7BFF); color:#fff; }
+
+  .chart2{ display:flex; align-items:flex-end; gap:8px; height:110px; padding-top:10px; }
+  .chart2 .bar2{ flex:1; border-radius:8px 8px 3px 3px; background:linear-gradient(180deg,#8C7BFF,var(--purple)); transition:height .5s ease; }
+  .chart-labels2{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--ink-soft); margin-top:8px; font-weight:700; }
+
+  .reading-row{ display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .reading-row .ic2{ width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+  .reading-row .t{ font-size:12px; font-weight:700; flex:1; }
+  .reading-row .v{ font-size:12px; font-weight:800; }
+  .up{ color:var(--green); } .down{ color:var(--red); }
+
+  /* settings */
+  .setrow{ display:flex; align-items:center; gap:12px; padding:12px; background:#fff; border-radius:14px; box-shadow:0 4px 12px -6px rgba(60,50,120,.14); margin-bottom:10px; cursor:pointer; }
+  .setrow .ic3{ width:36px; height:36px; border-radius:11px; display:flex; align-items:center; justify-content:center; }
+  .setrow .t{ font-size:12.5px; font-weight:800; }
+  .setrow .s{ font-size:10.5px; color:var(--ink-soft); font-weight:600; }
+  .toggle2{ width:42px; height:24px; border-radius:14px; background:var(--line); position:relative; flex:0 0 42px; margin-left:auto; }
+  .toggle2 i{ position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.2); transition:.2s; }
+  .toggle2.on{ background:linear-gradient(135deg,var(--purple),#8C7BFF); }
+  .toggle2.on i{ left:20px; }
+
+  .foot-note{ margin-top:32px; padding-top:20px; border-top:1px solid var(--line); font-size:11px; color:var(--ink-soft); text-align:center; max-width:400px; }
+
+  .screen{ display:none; }
+  .screen.active{ display:flex; flex-direction:column; height:100%; }
+  .appscreen{ display:none; }
+  .appscreen.active{ display:block; }
+
+  /* toast */
+  #toast{
+    position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); opacity:0;
+    background:var(--ink); color:#fff; font-size:12px; font-weight:700; padding:12px 20px;
+    border-radius:14px; box-shadow:0 12px 24px -8px rgba(0,0,0,.3); pointer-events:none;
+    transition:all .25s ease; z-index:99; max-width:280px; text-align:center;
+  }
+  #toast.show{ opacity:1; transform:translate(-50%,0); }
+</style>
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#355E3B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Demetrios">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <div class="eyebrow">Demetrios · Meet Demi</div>
+    <h1>Field Rover App</h1>
+    <p>Connect to Demi's BLE module to drive the rover and read live sensors, and to the onboard camera over Wi‑Fi for a live view.</p>
+  </div>
+
+  <div class="device">
+
+    <!-- SCREEN 1: ONBOARDING -->
+    <div class="screen active" id="screen-onboarding">
+      <div class="onb">
+        <div class="onb-hero">
+          <span class="skip" onclick="goTo('connect')">Skip</span>
+          <div class="cloud" style="width:60px;height:60px;top:20px;left:24px;"></div>
+          <div class="cloud" style="width:34px;height:34px;top:50px;right:30px;"></div>
+          <div class="cloud" style="width:26px;height:26px;bottom:30px;left:40px;"></div>
+          <svg class="mascot" width="150" height="160" viewBox="0 0 150 160">
+            <ellipse cx="75" cy="148" rx="40" ry="8" fill="rgba(60,40,120,.15)"/>
+            <rect x="30" y="55" width="90" height="75" rx="24" fill="url(#g1)"/>
+            <circle cx="40" cy="120" r="14" fill="#3B2E7A"/>
+            <circle cx="110" cy="120" r="14" fill="#3B2E7A"/>
+            <rect x="50" y="70" width="50" height="34" rx="14" fill="#fff"/>
+            <circle cx="66" cy="87" r="7" fill="#4B3FD1"/>
+            <circle cx="86" cy="87" r="7" fill="#4B3FD1"/>
+            <rect x="66" y="28" width="6" height="26" rx="3" fill="#3B2E7A"/>
+            <circle class="antenna-dot" cx="69" cy="24" r="7" fill="#FF6B9D"/>
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#8C7BFF"/>
+                <stop offset="1" stop-color="#4B3FD1"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="onb-body">
+          <h2>Meet Demi, your field rover</h2>
+          <p>Live soil, weather and camera data — right in your pocket, guided every step of the way.</p>
+          <div class="dots"><span class="on"></span><span></span><span></span></div>
+          <div class="btn-primary" onclick="goTo('connect')">Next →</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: CONNECT -->
+    <div class="screen" id="screen-connect">
+      <div class="statusbar">
+        <span>9:41</span>
+        <div class="sb-icons"><div class="sig"><span></span><span></span><span></span><span></span></div><div class="batt"><i style="width:80%"></i></div></div>
+      </div>
+      <div class="radar-wrap">
+        <div class="radar" id="radar">
+          <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+          <div class="radar-core">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 11L12 4l8 7M6 10v9h5v-6h2v6h5v-9"/></svg>
+          </div>
+        </div>
+        <div style="font-size:14px;font-weight:800;margin-bottom:4px;" id="connect-title">Looking for Demi…</div>
+        <div style="font-size:11.5px;color:var(--ink-soft);margin-bottom:18px;text-align:center;" id="connect-sub">Make sure the rover is powered on</div>
+
+        <div class="device-row">
+          <div class="dot2" style="background:#E8F8F2;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M6 12h12M6 6h12M6 18h12"/></svg></div>
+          <div><div class="t">DEMETRIOS‑BLE</div><div class="s" id="ble-status-line">Bluetooth LE · not connected</div></div>
+          <div class="btn-outline" id="btn-connect-ble" onclick="connectBLE()">Connect</div>
+        </div>
+        <div class="device-row">
+          <div class="dot2" style="background:#EAF2FF;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M2 8.5a16 16 0 0 1 20 0M5 12a11 11 0 0 1 14 0M8.5 15.5a6 6 0 0 1 7 0"/><circle cx="12" cy="19" r="1.4" fill="var(--blue)" stroke="none"/></svg></div>
+          <div><div class="t">DEMETRIOS‑CAM</div><div class="s" id="cam-status-line">Wi‑Fi · 192.168.4.1</div></div>
+          <div class="btn-outline" id="btn-join-cam" onclick="joinCamera()">Join</div>
+        </div>
+
+        <div style="margin-top:18px; width:100%;">
+          <div class="btn-primary" onclick="goTo('app'); switchApp('dashboard')">Continue to app →</div>
+          <div style="text-align:center; font-size:10.5px; color:var(--ink-soft); font-weight:700; margin-top:10px; cursor:pointer;" onclick="enableDemoAndContinue()">Skip — use Demo Mode instead</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 3: APP SHELL (dashboard / rover / camera / insights / settings) -->
+    <div class="screen" id="screen-app">
+      <div class="statusbar">
+        <span>9:41</span>
+        <div class="sb-icons"><div class="sig" id="sb-sig"><span></span><span></span><span></span><span></span></div><div class="batt"><i id="sb-batt" style="width:80%"></i></div></div>
+      </div>
+
+      <div class="content">
+
+        <!-- DASHBOARD -->
+        <section class="appscreen active" id="app-dashboard">
+          <div class="greet">
+            <div class="avatar">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="4" y="9" width="16" height="10" rx="3"/><circle cx="9" cy="14" r="1.4" fill="#fff" stroke="none"/><circle cx="15" cy="14" r="1.4" fill="#fff" stroke="none"/><path d="M12 9V5M9 5h6"/></svg>
+            </div>
+            <div><div class="hi">Good morning</div><div class="name">Field is looking good 🌾</div></div>
+            <div class="bell"><span class="ping"></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5 1.5 5h-15S6 12 6 8Z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></div>
+          </div>
+
+          <div class="goal-card">
+            <div class="top"><span>Today's Mission</span><span>3/5 Checks</span></div>
+            <div class="big">Scan north field for moisture</div>
+            <div class="bar-track"><div class="bar-fill" style="width:60%;"></div></div>
+          </div>
+
+          <div class="sec-title"><h3>Live Field Data</h3><span id="conn-badge" style="color:var(--ink-soft);">● offline</span></div>
+          <div class="tilegrid">
+            <div class="stile" style="background:#FFF3E5;"><div class="ic" style="background:#FF9F43;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2C9 7 5 11 5 15a7 7 0 0 0 14 0c0-4-4-8-7-13Z"/></svg></div><span>Moisture</span><b id="tile-moisture">--%</b></div>
+            <div class="stile" style="background:#FFEBEC;"><div class="ic" style="background:#FF5A5F;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2v12M9 15a3 3 0 1 0 6 0c0-1.2-.8-2-1.5-2.6V4a1.5 1.5 0 0 0-3 0v8.4C9.8 13 9 13.8 9 15Z"/></svg></div><span>Temp</span><b id="tile-temp">--°C</b></div>
+            <div class="stile" style="background:#EAF2FF;"><div class="ic" style="background:#4FA8FF;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11Z"/></svg></div><span>Humidity</span><b id="tile-humidity">--%</b></div>
+          </div>
+
+          <div class="sec-title"><h3>Continue Tracking</h3><span>See all</span></div>
+          <div class="progress-card">
+            <div class="thumb" style="background:linear-gradient(135deg,var(--green),#3FE0A5);"></div>
+            <div class="info"><div class="t">NPK · North Field</div><div class="s" id="npk-label">Nitrogen level · --</div><div class="mini-bar"><i id="npk-bar" style="width:0%;background:linear-gradient(90deg,var(--green),#3FE0A5);"></i></div></div>
+          </div>
+          <div class="progress-card">
+            <div class="thumb" style="background:linear-gradient(135deg,var(--purple),#8C7BFF);"></div>
+            <div class="info"><div class="t">Crop Recommendation</div><div class="s">Maize · 92% match</div><div class="mini-bar"><i style="width:92%;background:linear-gradient(90deg,var(--purple),#8C7BFF);"></i></div></div>
+          </div>
+        </section>
+
+        <!-- ROVER -->
+        <section class="appscreen" id="app-rover">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:800;">Drive Demi</div>
+            <svg class="mascot" width="34" height="36" viewBox="0 0 150 160" style="animation-duration:3.2s;">
+              <rect x="30" y="55" width="90" height="75" rx="24" fill="url(#g2)"/>
+              <rect x="50" y="70" width="50" height="34" rx="14" fill="#fff"/>
+              <circle cx="66" cy="87" r="7" fill="#4B3FD1"/><circle cx="86" cy="87" r="7" fill="#4B3FD1"/>
+              <defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8C7BFF"/><stop offset="1" stop-color="#4B3FD1"/></linearGradient></defs>
+            </svg>
+          </div>
+
+          <div class="batt-strip">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="2" y="8" width="18" height="8" rx="2"/><path d="M22 10v4"/></svg>
+            <div class="mini-bar"><i id="rover-batt-bar" style="width:0%;background:linear-gradient(90deg,var(--green),#3FE0A5);"></i></div>
+            <span style="font-size:11px;font-weight:800;" id="rover-batt-pct">--%</span>
+          </div>
+
+          <div class="pad2">
+            <div></div>
+            <button class="padbtn2" id="btn-fwd" onmousedown="driveStart('F')" onmouseup="driveStop()" onmouseleave="driveStop()" ontouchstart="driveStart('F')" ontouchend="driveStop()"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+            <div></div>
+            <button class="padbtn2" id="btn-left" onmousedown="driveStart('L')" onmouseup="driveStop()" onmouseleave="driveStop()" ontouchstart="driveStart('L')" ontouchend="driveStop()"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+            <button class="padbtn2 stop" id="btn-stop" onclick="driveStop(true)">STOP</button>
+            <button class="padbtn2" id="btn-right" onmousedown="driveStart('R')" onmouseup="driveStop()" onmouseleave="driveStop()" ontouchstart="driveStart('R')" ontouchend="driveStop()"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+            <div></div>
+            <button class="padbtn2" id="btn-back" onmousedown="driveStart('B')" onmouseup="driveStop()" onmouseleave="driveStop()" ontouchstart="driveStart('B')" ontouchend="driveStop()"><svg viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg></button>
+            <div></div>
+          </div>
+
+          <div class="slider-row2">
+            <div class="top"><span>Motor L Speed</span><b id="lspeed-val">62%</b></div>
+            <input type="range" min="0" max="100" value="62" id="lspeed" oninput="onSpeedChange()">
+          </div>
+          <div class="slider-row2">
+            <div class="top"><span>Motor R Speed</span><b id="rspeed-val">58%</b></div>
+            <input type="range" min="0" max="100" value="58" id="rspeed" oninput="onSpeedChange()">
+          </div>
+          <div style="font-size:10px;color:var(--ink-soft);font-weight:600;text-align:center;" id="rover-hint">Press and hold a direction to drive. Release to stop.</div>
+        </section>
+
+        <!-- CAMERA -->
+        <section class="appscreen" id="app-camera">
+          <div style="font-size:15px;font-weight:800;margin-bottom:12px;">Demi's View</div>
+          <div class="viewfinder2" id="viewfinder">
+            <div class="live-tag2 off" id="live-tag"><span class="d"></span><span id="live-tag-text">OFFLINE</span></div>
+            <img id="cam-img" style="display:none;" alt="Demi's camera feed">
+            <div class="placeholder" id="cam-placeholder">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" stroke-width="1.8"><rect x="3" y="6" width="14" height="12" rx="2"/><path d="M17 10l4-3v10l-4-3"/></svg>
+              No camera feed yet — join the Wi‑Fi module or enter a stream URL below.
+            </div>
+          </div>
+          <div class="cam-ip-row">
+            <input type="text" id="cam-url" placeholder="e.g. http://192.168.4.1/stream" value="http://192.168.4.1/stream">
+            <div class="btn-outline" onclick="connectCamera()">Load</div>
+          </div>
+          <div style="font-size:11.5px;color:var(--ink-soft);font-weight:600;margin-bottom:16px;" id="cam-caption">ESP32‑CAM · not connected</div>
+          <div style="display:flex;gap:10px;">
+            <div class="btn-outline" onclick="takeSnapshot()">Snapshot</div>
+            <div class="btn-outline" onclick="flipView()">Flip View</div>
+          </div>
+        </section>
+
+        <!-- INSIGHTS -->
+        <section class="appscreen" id="app-insights">
+          <div style="font-size:15px;font-weight:800;margin-bottom:12px;">Insights</div>
+          <div class="segmented2">
+            <div class="seg">24H</div><div class="seg active">7D</div><div class="seg">30D</div>
+          </div>
+          <div class="card" style="margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:700;color:var(--ink-soft);margin-bottom:4px;">Soil Moisture · 7 Day</div>
+            <div class="chart2" id="chart-bars">
+              <div class="bar2" style="height:38%;"></div>
+              <div class="bar2" style="height:52%;"></div>
+              <div class="bar2" style="height:44%;"></div>
+              <div class="bar2" style="height:61%;"></div>
+              <div class="bar2" style="height:49%;"></div>
+              <div class="bar2" style="height:58%;"></div>
+              <div class="bar2" style="height:42%;" id="bar-today"></div>
+            </div>
+            <div class="chart-labels2"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+          </div>
+
+          <div style="font-size:12px;font-weight:800;margin-bottom:4px;">Current Readings</div>
+          <div class="reading-row"><div class="ic2" style="background:#FFEBEC;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M12 2v12M9 15a3 3 0 1 0 6 0c0-1.2-.8-2-1.5-2.6V4a1.5 1.5 0 0 0-3 0v8.4C9.8 13 9 13.8 9 15Z"/></svg></div><div class="t">Temperature</div><div class="v up" id="read-temp">--°C</div></div>
+          <div class="reading-row"><div class="ic2" style="background:#EAF2FF;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11Z"/></svg></div><div class="t">Humidity</div><div class="v down" id="read-humidity">--%</div></div>
+          <div class="reading-row"><div class="ic2" style="background:#E8F8F2;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div><div class="t">Nitrogen (N)</div><div class="v" id="read-nitrogen">-- mg/kg</div></div>
+        </section>
+
+        <!-- SETTINGS -->
+        <section class="appscreen" id="app-settings">
+          <div style="font-size:15px;font-weight:800;margin-bottom:14px;">Settings</div>
+
+          <div class="setrow" onclick="toggleBLE()">
+            <div class="ic3" style="background:#EAF2FF;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M6 12h12M6 6h12M6 18h12"/></svg></div>
+            <div><div class="t">Bluetooth</div><div class="s" id="settings-ble-sub">Not connected</div></div>
+            <div class="toggle2" id="toggle-ble"><i></i></div>
+          </div>
+          <div class="setrow" onclick="toggleCameraSetting()">
+            <div class="ic3" style="background:#EAF2FF;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M2 8.5a16 16 0 0 1 20 0M5 12a11 11 0 0 1 14 0M8.5 15.5a6 6 0 0 1 7 0"/></svg></div>
+            <div><div class="t">Wi‑Fi Camera</div><div class="s" id="settings-cam-sub">Not joined</div></div>
+            <div class="toggle2" id="toggle-cam"><i></i></div>
+          </div>
+          <div class="setrow" onclick="toggleDemoMode()">
+            <div class="ic3" style="background:#FFF3E5;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><rect x="3" y="6" width="14" height="12" rx="3"/><path d="M17 10l4-3v10l-4-3"/></svg></div>
+            <div><div class="t">Demo Mode</div><div class="s">Use simulated sensor data</div></div>
+            <div class="toggle2 on" id="toggle-demo"><i></i></div>
+          </div>
+          <div class="setrow" onclick="runDiagnostics()">
+            <div class="ic3" style="background:#F1EBFF;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg></div>
+            <div><div class="t">Diagnostics</div><div class="s">Run rover self‑check</div></div>
+          </div>
+        </section>
+
+      </div>
+
+      <div class="tabbar">
+        <button class="item active" data-tab="dashboard" onclick="switchApp('dashboard')"><div class="ic icon"><svg viewBox="0 0 24 24"><path d="M4 11L12 4l8 7M6 10v9h5v-6h2v6h5v-9"/></svg></div>Home</button>
+        <button class="item" data-tab="rover" onclick="switchApp('rover')"><div class="ic icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg></div>Rover</button>
+        <button class="item" data-tab="camera" onclick="switchApp('camera')"><div class="ic icon"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="14" height="12"/><path d="M17 10l4-3v10l-4-3"/></svg></div>Camera</button>
+        <button class="item" data-tab="insights" onclick="switchApp('insights')"><div class="ic icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7"/></svg></div>Insights</button>
+        <button class="item" data-tab="settings" onclick="switchApp('settings')"><div class="ic icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="9" r="3"/></svg></div>Profile</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="foot-note">
+    Real hardware I/O: Web Bluetooth (BLE UART) drives the rover and streams sensor telemetry · the camera loads over Wi‑Fi/HTTP from the ESP32‑CAM · Demo Mode simulates data when no hardware is present. See the matching <code>demetrios_ble_peripheral.ino</code> sketch for the firmware side.
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<canvas id="snap-canvas" style="display:none;"></canvas>
+
+<script>
+/* ============================================================
+   CONFIG — adjust these to match your BLE module's firmware.
+   Defaults below match the companion demetrios_ble_peripheral.ino
+   sketch (Nordic UART Service, common on ESP32 / HM-10 clones).
+   ============================================================ */
+const BLE_CONFIG = {
+  serviceUUID:  '6e400001-b5a3-f393-e0a9-e50e24dcca9e', // Nordic UART Service
+  writeUUID:    '6e400002-b5a3-f393-e0a9-e50e24dcca9e', // write (app -> rover)
+  notifyUUID:   '6e400003-b5a3-f393-e0a9-e50e24dcca9e', // notify (rover -> app)
+  // Fallback for classic HM-10 "FFE0/FFE1" clones — tried automatically if the
+  // Nordic UUIDs above aren't found on the connected device.
+  altServiceUUID: '0000ffe0-0000-1000-8000-00805f9b34fb',
+  altCharUUID:    '0000ffe1-0000-1000-8000-00805f9b34fb',
+};
+
+/* Telemetry line format expected from the rover, newline-terminated, e.g.:
+     T:28.4,H:64,M:42,N:38,B:86
+   T=temp C, H=humidity %, M=soil moisture %, N=nitrogen mg/kg, B=battery % */
+
+let bleDevice = null, bleServer = null, writeChar = null, notifyChar = null;
+let bleConnected = false;
+let camConnected = false;
+let demoMode = true;
+let demoTimer = null;
+let driveInterval = null;
+let currentSpeedL = 62, currentSpeedR = 58;
+let rxBuffer = '';
+
+function toast(msg, ms){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), ms || 2400);
+}
+
+/* ---------------- navigation ---------------- */
+function goTo(screen){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  if(screen === 'connect') document.getElementById('screen-connect').classList.add('active');
+  if(screen === 'app') document.getElementById('screen-app').classList.add('active');
+  if(screen === 'onboarding') document.getElementById('screen-onboarding').classList.add('active');
+}
+function switchApp(tab){
+  document.querySelectorAll('.appscreen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('app-'+tab).classList.add('active');
+  document.querySelectorAll('.tabbar .item').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.tabbar .item[data-tab="'+tab+'"]').classList.add('active');
+}
+function enableDemoAndContinue(){
+  demoMode = true;
+  startDemoFeed();
+  goTo('app'); switchApp('dashboard');
+  toast("Demo Mode on — simulated sensor data");
+}
+
+/* ---------------- BLE (rover: control + sensors) ---------------- */
+async function connectBLE(){
+  if(!navigator.bluetooth){
+    toast("Web Bluetooth isn't available in this browser. Try Chrome/Edge on desktop or Android.");
+    return;
+  }
+  const btn = document.getElementById('btn-connect-ble');
+  btn.classList.add('busy'); btn.textContent = 'Scanning…';
+  document.getElementById('connect-title').textContent = 'Looking for Demi…';
+  try{
+    bleDevice = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [BLE_CONFIG.serviceUUID, BLE_CONFIG.altServiceUUID]
+    });
+    document.getElementById('connect-sub').textContent = 'Connecting to ' + (bleDevice.name || 'device') + '…';
+    bleDevice.addEventListener('gattserverdisconnected', onBLEDisconnected);
+    bleServer = await bleDevice.gatt.connect();
+
+    let service;
+    try{ service = await bleServer.getPrimaryService(BLE_CONFIG.serviceUUID); }
+    catch(e){ service = await bleServer.getPrimaryService(BLE_CONFIG.altServiceUUID); }
+
+    try{
+      writeChar = await service.getCharacteristic(BLE_CONFIG.writeUUID);
+      notifyChar = await service.getCharacteristic(BLE_CONFIG.notifyUUID);
+    }catch(e){
+      // HM-10 style clones use one characteristic for both read/write/notify
+      writeChar = await service.getCharacteristic(BLE_CONFIG.altCharUUID);
+      notifyChar = writeChar;
+    }
+
+    await notifyChar.startNotifications();
+    notifyChar.addEventListener('characteristicvaluechanged', onTelemetry);
+
+    bleConnected = true;
+    demoMode = false;
+    stopDemoFeed();
+    btn.classList.remove('busy'); btn.classList.add('done'); btn.textContent = 'Connected';
+    document.getElementById('ble-status-line').textContent = 'Bluetooth LE · connected to ' + (bleDevice.name || 'Demi');
+    document.getElementById('connect-title').textContent = 'Demi is connected!';
+    document.getElementById('connect-sub').textContent = 'Rover control and sensors are live.';
+    document.getElementById('radar').classList.add('paused');
+    updateSettingsBLE();
+    toast('Connected to ' + (bleDevice.name || 'rover') + ' over BLE');
+  }catch(err){
+    console.error(err);
+    btn.classList.remove('busy'); btn.textContent = 'Connect';
+    toast('Bluetooth connection failed or was cancelled.');
+  }
+}
+function onBLEDisconnected(){
+  bleConnected = false;
+  document.getElementById('ble-status-line').textContent = 'Bluetooth LE · not connected';
+  document.getElementById('btn-connect-ble').classList.remove('done');
+  document.getElementById('btn-connect-ble').textContent = 'Connect';
+  document.getElementById('radar').classList.remove('paused');
+  updateSettingsBLE();
+  toast('Rover disconnected');
+  if(!camConnected) { demoMode = true; startDemoFeed(); }
+}
+function disconnectBLE(){
+  if(bleDevice && bleDevice.gatt.connected) bleDevice.gatt.disconnect();
+}
+function toggleBLE(){
+  if(bleConnected) disconnectBLE(); else connectBLE();
+}
+function updateSettingsBLE(){
+  const t = document.getElementById('toggle-ble');
+  t.classList.toggle('on', bleConnected);
+  document.getElementById('settings-ble-sub').textContent = bleConnected
+    ? 'Connected to ' + (bleDevice && bleDevice.name ? bleDevice.name : 'rover')
+    : 'Not connected';
+}
+
+function sendCommand(str){
+  if(!bleConnected || !writeChar){ return; }
+  const data = new TextEncoder().encode(str + '\n');
+  writeChar.writeValue(data).catch(e=>console.warn('BLE write failed', e));
+}
+
+function onTelemetry(event){
+  const chunk = new TextDecoder().decode(event.target.value);
+  rxBuffer += chunk;
+  let idx;
+  while((idx = rxBuffer.indexOf('\n')) >= 0){
+    const line = rxBuffer.slice(0, idx).trim();
+    rxBuffer = rxBuffer.slice(idx+1);
+    if(line) applyTelemetry(line);
+  }
+}
+function applyTelemetry(line){
+  // Expected: T:28.4,H:64,M:42,N:38,B:86
+  const vals = {};
+  line.split(',').forEach(p=>{
+    const [k,v] = p.split(':');
+    if(k && v !== undefined) vals[k.trim()] = parseFloat(v);
+  });
+  if(vals.T !== undefined){ document.getElementById('tile-temp').textContent = vals.T + '°C'; document.getElementById('read-temp').textContent = vals.T + '°C'; }
+  if(vals.H !== undefined){ document.getElementById('tile-humidity').textContent = vals.H + '%'; document.getElementById('read-humidity').textContent = vals.H + '%'; }
+  if(vals.M !== undefined){
+    document.getElementById('tile-moisture').textContent = vals.M + '%';
+    document.getElementById('bar-today').style.height = Math.min(100, vals.M) + '%';
+  }
+  if(vals.N !== undefined){
+    document.getElementById('read-nitrogen').textContent = vals.N + ' mg/kg';
+    document.getElementById('npk-bar').style.width = Math.min(100, vals.N * 2) + '%';
+    document.getElementById('npk-label').textContent = 'Nitrogen level · ' + (vals.N > 30 ? 'Good' : 'Low');
+  }
+  if(vals.B !== undefined){
+    document.getElementById('rover-batt-bar').style.width = vals.B + '%';
+    document.getElementById('rover-batt-pct').textContent = vals.B + '%';
+    document.getElementById('sb-batt').style.width = Math.max(10, vals.B) + '%';
+  }
+  const badge = document.getElementById('conn-badge');
+  badge.textContent = '● live'; badge.style.color = 'var(--green)';
+}
+
+/* ---------------- rover drive controls ---------------- */
+function driveStart(dir){
+  if(!bleConnected && !demoMode){ toast('Connect to the rover first'); return; }
+  sendCommand(dir);
+  clearInterval(driveInterval);
+  driveInterval = setInterval(()=>sendCommand(dir), 400); // keep-alive while held
+}
+function driveStop(manual){
+  clearInterval(driveInterval);
+  if(bleConnected) sendCommand('S');
+  if(manual) toast('Stopped');
+}
+function onSpeedChange(){
+  currentSpeedL = document.getElementById('lspeed').value;
+  currentSpeedR = document.getElementById('rspeed').value;
+  document.getElementById('lspeed-val').textContent = currentSpeedL + '%';
+  document.getElementById('rspeed-val').textContent = currentSpeedR + '%';
+  sendCommand('M:' + currentSpeedL + ',' + currentSpeedR);
+}
+
+/* ---------------- camera (WiFi / HTTP, separate hardware) ---------------- */
+function joinCamera(){
+  const btn = document.getElementById('btn-join-cam');
+  btn.classList.add('busy'); btn.textContent = 'Joining…';
+  setTimeout(()=>{
+    btn.classList.remove('busy'); btn.classList.add('done'); btn.textContent = 'Joined';
+    document.getElementById('cam-status-line').textContent = 'Wi‑Fi · joined DEMETRIOS‑CAM';
+    camConnected = true;
+    updateSettingsCam();
+    toast('Joined DEMETRIOS‑CAM Wi‑Fi network — open the Camera tab to load the stream');
+  }, 900);
+  // Note: browsers can't join a Wi-Fi network programmatically. This step
+  // reflects joining the ESP32-CAM's network manually in device Wi-Fi settings,
+  // after which its HTTP stream becomes reachable at the URL below.
+}
+function connectCamera(){
+  const url = document.getElementById('cam-url').value.trim();
+  if(!url){ toast('Enter the camera stream URL'); return; }
+  const img = document.getElementById('cam-img');
+  const placeholder = document.getElementById('cam-placeholder');
+  const liveTag = document.getElementById('live-tag');
+  const liveTagText = document.getElementById('live-tag-text');
+  img.onload = ()=>{
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+    liveTag.classList.remove('off');
+    liveTagText.textContent = 'LIVE';
+    document.getElementById('cam-caption').textContent = 'ESP32‑CAM · connected · ' + url;
+    camConnected = true;
+    updateSettingsCam();
+  };
+  img.onerror = ()=>{
+    img.style.display = 'none';
+    placeholder.style.display = 'flex';
+    liveTag.classList.add('off');
+    liveTagText.textContent = 'OFFLINE';
+    document.getElementById('cam-caption').textContent = 'ESP32‑CAM · could not reach stream';
+    toast("Couldn't load the camera stream. Check the URL and that you're on the same network.");
+  };
+  img.src = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+}
+function toggleCameraSetting(){
+  if(camConnected){
+    camConnected = false;
+    document.getElementById('cam-img').style.display = 'none';
+    document.getElementById('cam-placeholder').style.display = 'flex';
+    document.getElementById('live-tag').classList.add('off');
+    document.getElementById('live-tag-text').textContent = 'OFFLINE';
+    document.getElementById('cam-caption').textContent = 'ESP32‑CAM · not connected';
+    updateSettingsCam();
+  } else {
+    switchApp('camera'); goTo('app');
+    toast('Enter the stream URL on the Camera tab to connect');
+  }
+}
+function updateSettingsCam(){
+  document.getElementById('toggle-cam').classList.toggle('on', camConnected);
+  document.getElementById('settings-cam-sub').textContent = camConnected ? 'Joined DEMETRIOS‑CAM' : 'Not joined';
+}
+function takeSnapshot(){
+  const img = document.getElementById('cam-img');
+  if(img.style.display === 'none'){ toast('No live feed to capture'); return; }
+  try{
+    const canvas = document.getElementById('snap-canvas');
+    canvas.width = img.naturalWidth || 300; canvas.height = img.naturalHeight || 230;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const link = document.createElement('a');
+    link.download = 'demi-snapshot-' + Date.now() + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    toast('Snapshot saved');
+  }catch(e){
+    toast("Can't save this snapshot (camera stream may block cross-origin capture).");
+  }
+}
+function flipView(){
+  document.getElementById('viewfinder').classList.toggle('flipped');
+}
+
+/* ---------------- demo mode (simulated telemetry, no hardware needed) ---------------- */
+function toggleDemoMode(){
+  demoMode = !demoMode;
+  document.getElementById('toggle-demo').classList.toggle('on', demoMode);
+  if(demoMode) startDemoFeed(); else stopDemoFeed();
+  toast(demoMode ? 'Demo Mode on' : 'Demo Mode off');
+}
+function startDemoFeed(){
+  stopDemoFeed();
+  demoTimer = setInterval(()=>{
+    const t = (24 + Math.random()*8).toFixed(1);
+    const h = Math.round(55 + Math.random()*20);
+    const m = Math.round(30 + Math.random()*30);
+    const n = Math.round(25 + Math.random()*20);
+    const b = bleConnected ? null : Math.round(70 + Math.random()*20);
+    let line = 'T:'+t+',H:'+h+',M:'+m+',N:'+n;
+    if(b !== null) line += ',B:'+b;
+    applyTelemetry(line);
+  }, 3000);
+}
+function stopDemoFeed(){
+  clearInterval(demoTimer);
+}
+
+/* ---------------- diagnostics ---------------- */
+function runDiagnostics(){
+  if(bleConnected){
+    sendCommand('DIAG');
+    toast('Self‑check requested — watch for a response over BLE');
+  } else if(demoMode){
+    toast('Self‑check (demo): motors OK · sensors OK · battery OK');
+  } else {
+    toast('Connect to the rover first to run diagnostics');
+  }
+}
+
+/* ---------------- boot ---------------- */
+startDemoFeed();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(console.error);
+  });
+}
+</script>
+
+</body>
+</html>
